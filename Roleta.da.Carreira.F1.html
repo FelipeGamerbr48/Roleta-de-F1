@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roleta da Carreira F1 - Sistema Completo com Mercado Piastri</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0f0f15;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #e10600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .sub-header {
+            color: #ffd700;
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* --- Estrutura da Roleta --- */
+        .roleta-box {
+            position: relative;
+            width: 380px;
+            height: 380px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(0,0,0,0.8);
+            border: 6px solid #ffffff;
+        }
+
+        .seta-marcador {
+            position: absolute;
+            top: 50%;
+            right: -20px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-right: 30px solid #ffffff;
+            z-index: 10;
+        }
+
+        .centro-roleta {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #111;
+            border: 4px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            cursor: pointer;
+        }
+
+        .btn-texto { color: #fff; font-weight: bold; font-size: 14px; text-transform: uppercase; }
+
+        /* --- Resumo --- */
+        .resumo-container {
+            background-color: #1a1a20;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .resumo-titulo {
+            font-size: 16px;
+            color: #aaa;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .item-resultado {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            background: #24242c;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        .item-label { color: #888; }
+        .item-val { font-weight: bold; color: #fff; text-align: right; }
+        .item-val.ativo { color: #00ff88; }
+        .item-val.campeao { color: #ffd700; text-shadow: 0 0 5px rgba(255,215,0,0.5); }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: #222;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid #e10600;
+            max-width: 340px;
+        }
+
+        .modal-content h2 { color: #ffd700; margin-bottom: 10px; font-size: 18px; }
+        .modal-content p { font-size: 18px; font-weight: bold; margin: 15px 0; color: #00ff88; }
+        .modal-btn {
+            background: #e10600; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Carreira Automobilística Completa</h1>
+    <div class="sub-header" id="etapa-titulo">Etapa 1: Idade de Estreia F1 (2024)</div>
+
+    <div class="main-container">
+        <div class="roleta-box">
+            <div class="seta-marcador"></div>
+            <canvas id="wheelCanvas" width="380" height="380"></canvas>
+            <div class="centro-roleta" id="btn-girar" onclick="girar()">
+                <span class="btn-texto">GIRAR</span>
+            </div>
+        </div>
+
+        <div class="resumo-container">
+            <div class="resumo-titulo">📋 Ficha da Carreira por Categoria</div>
+            <div class="item-resultado"><span class="item-label">Idade Estreia F1:</span><span class="item-val" id="res-0">-</span></div>
+            <div class="item-resultado"><span class="item-label">Títulos Kart:</span><span class="item-val" id="res-1">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival Kart Nacional:</span><span class="item-val" id="res-2">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival Kart Internacional:</span><span class="item-val" id="res-3">-</span></div>
+            <div class="item-resultado"><span class="item-label">Academia de Pilotos:</span><span class="item-val" id="res-4">-</span></div>
+            
+            <div class="item-resultado"><span class="item-label">F4 Disputada (2021):</span><span class="item-val" id="res-5">-</span></div>
+            <div class="item-resultado"><span class="item-label">Classificação F4:</span><span class="item-val" id="res-6">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival na F4:</span><span class="item-val" id="res-7">-</span></div>
+            
+            <div class="item-resultado"><span class="item-label">Categoria Intervalo:</span><span class="item-val" id="res-8">-</span></div>
+            <div class="item-resultado"><span class="item-label">Classificação Intervalo:</span><span class="item-val" id="res-9">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival no Intervalo:</span><span class="item-val" id="res-10">-</span></div>
+
+            <div class="item-resultado"><span class="item-label">Classificação F3 (2022):</span><span class="item-val" id="res-11">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival na F3:</span><span class="item-val" id="res-12">-</span></div>
+
+            <div class="item-resultado"><span class="item-label">Classificação F2 (2023):</span><span class="item-val" id="res-13">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival na F2:</span><span class="item-val" id="res-14">-</span></div>
+            
+            <div class="item-resultado"><span class="item-label">Equipe Estreia F1 (2024):</span><span class="item-val" id="res-15">-</span></div>
+            <div class="item-resultado"><span class="item-label">Desempenho F1 (2024):</span><span class="item-val" id="res-16">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival Pista F1 (2024):</span><span class="item-val" id="res-17">-</span></div>
+            
+            <div class="item-resultado"><span class="item-label">Equipe F1 (2025):</span><span class="item-val" id="res-18">-</span></div>
+            <div class="item-resultado"><span class="item-label">Meta da Temporada (2025):</span><span class="item-val" id="res-19">-</span></div>
+            <div class="item-resultado"><span class="item-label">Companheiro de Equipe (2025):</span><span class="item-val" id="res-20">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival no Grid Geral (2025):</span><span class="item-val" id="res-21">-</span></div>
+            <div class="item-resultado"><span class="item-label">Rival Mídia Internacional:</span><span class="item-val" id="res-22">-</span></div>
+            <div class="item-resultado"><span class="item-label">Extracurricular:</span><span class="item-val" id="res-23">-</span></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modal-etapa-nome">Resultado</h2>
+            <p id="modal-valor">-</p>
+            <button class="modal-btn" onclick="proximaEtapa()">Continuar Carreira ➔</button>
+        </div>
+    </div>
+
+    <script>
+        let academiaPilotos = "";
+        let desempenho2024 = "";
+        let equipe2025 = "";
+
+        const etapas = [
+            { nome: "Idade de Estreia F1 (2024)", opcoes: ["18 anos", "19 anos", "20 anos", "21 anos"] },
+            { nome: "Títulos de Kart (2019)", opcoes: ["0 Nac / 0 Int", "2 Nac / 1 Int", "3 Nac / 3 Int", "1 Nac / 2 Int"] },
+            { nome: "Rival Kart Nacional (Brasil)", opcoes: ["Gabriel Bortoleto", "Rafael Câmara", "Matheus Morgatto", "Caio Collet", "Gabriel Gomez"] },
+            { nome: "Rival Kart Internacional (Mundo)", opcoes: ["Kimi Antonelli", "Arvid Lindblad", "Alex Powell", "Tuukka Taponen", "Taylor Barnard"] },
+            { nome: "Academia de Pilotos", opcoes: ["Ferrari", "McLaren", "Alpine", "Mercedes", "Red Bull"] },
+            
+            /* F4 */
+            { nome: "F4 Disputada (2021)", opcoes: ["F4 Italiana", "F4 Alemã (ADAC)", "F4 Britânica", "F4 Espanhola"] },
+            { nome: "Classificação F4 (2021)", opcoes: ["1º (Campeão)", "2º Lugar", "3º Lugar", "Top 5"] },
+            { nome: "Rival na F4 (2021)", opcoes: ["Oliver Bearman", "Tim Tramnitz", "Luke Browning", "Kirill Smal", "Matias Zagazeta"] },
+            
+            /* Categoria de Intervalo */
+            { nome: "Categoria de Intervalo (Inverno)", opcoes: ["FRMEC / F3 Asiática", "Toyota Racing Series", "Eurocup-3", "F3 UAE"] },
+            { nome: "Classificação Categoria Intervalo", opcoes: ["1º (Campeão)", "2º Lugar", "3º Lugar", "Top 5"] },
+            { nome: "Rival na Categoria Intervalo", opcoes: ["Pepe Martí", "Paul Aron", "Gabriele Minì", "Dino Beganovic"] },
+
+            /* F3 */
+            { nome: "Classificação F3 (2022)", opcoes: ["1º (Campeão)", "2º Lugar", "3º Lugar", "Top 10"] },
+            { nome: "Rival na F3 (2022)", opcoes: ["Victor Martins", "Zane Maloney", "Isack Hadjar", "Arthur Leclerc"] },
+
+            /* F2 */
+            { nome: "Classificação F2 (2023)", opcoes: ["1º (Campeão)", "2º Lugar", "3º Lugar", "Top 5"] },
+            { nome: "Rival na F2 (2023)", opcoes: ["Théo Pourchaire", "Frederik Vesti", "Jack Doohan", "Ayumu Iwasa"] },
+
+            /* F1 2024 */
+            { 
+                nome: "Equipe de Estreia na F1 (2024)", 
+                getOpcoes: () => {
+                    if (academiaPilotos.includes("Mercedes")) {
+                        return ["Williams", "Aston Martin", "McLaren", "Mercedes"];
+                    } else if (academiaPilotos.includes("Ferrari")) {
+                        return ["Haas", "Sauber / Stake", "Ferrari"];
+                    } else if (academiaPilotos.includes("Red Bull")) {
+                        return ["RB (Racing Bulls)", "Red Bull Racing", "Williams (Empréstimo)", "Sauber / Stake"];
+                    } else if (academiaPilotos.includes("Alpine")) {
+                        return ["Alpine", "McLaren (Chapéu!)", "Williams", "Haas"];
+                    } else {
+                        return ["McLaren", "Williams", "Haas", "Sauber / Stake"];
+                    }
+                }
+            },
+            { 
+                nome: "Desempenho Temporada F1 2024", 
+                opcoes: [
+                    "Top 8 no Mundial (Destaque! ⭐)", 
+                    "Top 10 no Mundial", 
+                    "Pódio Surpresa (12º-15º)", 
+                    "Superou Companheiro", 
+                    "Lanterna (Carro Fraco)"
+                ] 
+            },
+            { nome: "Principal Rival Pista F1 2024", opcoes: ["Nico Hülkenberg", "Kevin Magnussen", "Yuki Tsunoda", "Alex Albon", "Valtteri Bottas", "Zhou Guanyu"] },
+
+            /* F1 2025 */
+            { 
+                nome: "Contrato F1 para 2025", 
+                getOpcoes: () => {
+                    if (desempenho2024.includes("Destaque") || desempenho2024.includes("Top 10")) {
+                        return ["McLaren", "Ferrari", "Red Bull", "Mercedes", "Aston Martin", "Alpine", "Williams", "Haas", "RB (Racing Bulls)", "Sauber / Audi"];
+                    } else if (desempenho2024.includes("Pódio") || desempenho2024.includes("Superou")) {
+                        return ["Aston Martin", "Alpine", "McLaren", "Mercedes", "Ferrari", "Williams", "RB (Racing Bulls)", "Haas", "Sauber / Audi", "Red Bull"];
+                    } else {
+                        return ["Aston Martin", "Alpine", "Williams", "Haas", "Sauber / Audi", "RB (Racing Bulls)", "McLaren", "Mercedes", "Ferrari", "Red Bull"];
+                    }
+                }
+            },
+            {
+                nome: "Meta da Temporada 2025",
+                getOpcoes: () => {
+                    const dePonta = ["Ferrari", "McLaren", "Red Bull", "Mercedes"];
+                    const intermediaria = ["Aston Martin", "Alpine", "Williams", "RB (Racing Bulls)"];
+                    
+                    if (dePonta.includes(equipe2025)) {
+                        return ["Disputar Título", "Título Construtores", "Vitórias e Pódios", "Bater Companheiro"];
+                    } else if (intermediaria.includes(equipe2025)) {
+                        return ["Liderar Intermediário", "Pódios Ocasionais", "Pontuar Sempre", "Superar Rival", "Não Cair no Q1"];
+                    } else {
+                        return ["Pontos Frequentes", "Avançar pro Q3", "Bater Companheiro", "Evitar Último"];
+                    }
+                }
+            },
+            { nome: "Companheiro de Equipe em 2025", opcoes: ["Charles Leclerc", "Lewis Hamilton", "Lando Norris", "Max Verstappen", "Fernando Alonso", "George Russell", "Oscar Piastri", "Carlos Sainz"] },
+            { nome: "Rival no Grid Geral (2025)", opcoes: ["Fernando Alonso", "Max Verstappen", "Lewis Hamilton", "Charles Leclerc", "Lando Norris", "Carlos Sainz", "Alex Albon"] },
+            { nome: "Rival Mídia Internacional", opcoes: ["George Russell", "Esteban Ocon", "Liam Lawson", "Oliver Bearman", "Franco Colapinto", "Lance Stroll", "Lewis Hamilton", "Rede Globo"] },
+            { nome: "Atividade Extracurricular", opcoes: ["Entrevista Acelerados", "Teste na Indy", "24h de Le Mans", "Pódio Stock Car", "NASCAR Truck", "Func. Atacadão"] }
+        ];
+
+        const coresFatias = ["#e10600", "#4b6584", "#f7b731", "#20bf6b", "#8854d0", "#eb3b5a", "#fa8231", "#0fb9b1"];
+        let etapaAtual = 0;
+        let girando = false;
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function getOpcoesEtapaAtual() {
+            const etapa = etapas[etapaAtual];
+            return etapa.getOpcoes ? etapa.getOpcoes() : etapa.opcoes;
+        }
+
+        function desenharRoleta() {
+            const opcoes = getOpcoesEtapaAtual();
+            const numFatias = opcoes.length;
+            const anguloFatia = (2 * Math.PI) / numFatias;
+            const raio = canvas.width / 2;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Ajusta o tamanho da fonte com base na quantidade de itens na roleta
+            let fontSize = 11;
+            if (numFatias > 6) fontSize = 9;
+            if (numFatias > 8) fontSize = 8;
+
+            for (let i = 0; i < numFatias; i++) {
+                ctx.beginPath();
+                ctx.moveTo(raio, raio);
+                ctx.arc(raio, raio, raio, i * anguloFatia, (i + 1) * anguloFatia);
+                ctx.fillStyle = coresFatias[i % coresFatias.length];
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(raio, raio);
+                ctx.rotate(i * anguloFatia + anguloFatia / 2);
+                ctx.fillStyle = "white";
+                ctx.font = `bold ${fontSize}px sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                // Posição x ajustada para o texto ficar bem centralizado dentro da fatia
+                const posX = raio * 0.55; 
+
+                // Quebra de texto simples para evitar vazamento da borda
+                const texto = opcoes[i];
+                const palavras = texto.split(' ');
+                
+                if (palavras.length > 2 && texto.length > 12) {
+                    const meio = Math.ceil(palavras.length / 2);
+                    const linha1 = palavras.slice(0, meio).join(' ');
+                    const linha2 = palavras.slice(meio).join(' ');
+                    ctx.fillText(linha1, posX, -fontSize / 1.5);
+                    ctx.fillText(linha2, posX, fontSize / 1.5);
+                } else {
+                    ctx.fillText(texto, posX, 0);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function girar() {
+            if (girando) return;
+            girando = true;
+            const opcoes = getOpcoesEtapaAtual();
+            const indice = Math.floor(Math.random() * opcoes.length);
+            const voltaExtra = 360 * 5;
+            const anguloFatia = 360 / opcoes.length;
+            
+            const totalRot = voltaExtra + (360 - (indice * anguloFatia + anguloFatia / 2));
+            canvas.style.transition = "transform 3.5s cubic-bezier(0.1, 1, 0.2, 1)";
+            canvas.style.transform = `rotate(${totalRot}deg)`;
+
+            setTimeout(() => {
+                girando = false;
+                const res = opcoes[indice];
+
+                if (etapas[etapaAtual].nome.includes("Academia de Pilotos")) {
+                    academiaPilotos = res;
+                }
+                if (etapas[etapaAtual].nome.includes("Desempenho Temporada F1 2024")) {
+                    desempenho2024 = res;
+                }
+                if (etapas[etapaAtual].nome.includes("Contrato F1 para 2025")) {
+                    equipe2025 = res;
+                }
+
+                document.getElementById(`res-${etapaAtual}`).innerText = res;
+                if (res.includes("CAMPEÃO") || res.includes("Destaque")) document.getElementById(`res-${etapaAtual}`).classList.add('campeao');
+                
+                document.getElementById('modal-etapa-nome').innerText = etapas[etapaAtual].nome;
+                document.getElementById('modal-valor').innerText = res;
+                document.getElementById('modal').style.display = 'flex';
+            }, 3500);
+        }
+
+        function proximaEtapa() {
+            document.getElementById('modal').style.display = 'none';
+            canvas.style.transition = "none";
+            canvas.style.transform = "rotate(0deg)";
+            etapaAtual++;
+            if (etapaAtual < etapas.length) {
+                document.getElementById('etapa-titulo').innerText = `Etapa ${etapaAtual + 1}: ${etapas[etapaAtual].nome}`;
+                desenharRoleta();
+            } else {
+                document.getElementById('etapa-titulo').innerText = "🏆 Trajetória Concluída!";
+                document.getElementById('btn-girar').style.display = 'none';
+            }
+        }
+
+        desenharRoleta();
+    </script>
+</body>
+</html>
